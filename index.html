@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Control</title>
+    <style>
+        #screen {
+            width: 800px;
+            height: 600px;
+            border: 1px solid #000;
+            background-size: cover;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="screen"></div>
+    <script>
+        let ws = new WebSocket('ws://centraldiagnostico.online:8080');
+
+        ws.onopen = function() {
+            console.log('WebSocket connection established');
+        };
+
+        ws.onmessage = function(event) {
+            let imageData = event.data;
+            let img = new Image();
+            img.onload = function() {
+                let screen = document.getElementById('screen');
+                screen.style.backgroundImage = 'url(' + img.src + ')';
+            };
+            img.src = 'data:image/bmp;base64,' + btoa(imageData);
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket connection closed');
+        };
+
+        ws.onerror = function(error) {
+            console.log('WebSocket error: ' + error.message);
+        };
+
+        document.getElementById('screen').addEventListener('click', function(event) {
+            let rect = event.target.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+
+            ws.send(JSON.stringify({ type: 'click', x: x, y: y }));
+        });
+
+        document.addEventListener('keydown', function(event) {
+            ws.send(JSON.stringify({ type: 'keydown', key: event.key }));
+        });
+    </script>
+</body>
+</html>
